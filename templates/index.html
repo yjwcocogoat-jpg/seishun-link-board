@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seishun Link - 学園掲示板</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            background: #f4f6fb;
+            color: #1f2937;
+        }
+
+        header {
+            background: #1d4ed8;
+            color: #fff;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.35rem;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 24px auto;
+            padding: 0 16px;
+            display: grid;
+            grid-template-columns: 1fr 1.6fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 780px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            margin-bottom: 16px;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.05rem;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 8px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 10px;
+            margin-bottom: 4px;
+        }
+
+        input[type="text"],
+        select,
+        textarea,
+        input[type="file"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.92rem;
+        }
+
+        textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        button {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 9px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button.secondary {
+            background: #475569;
+        }
+
+        button.like-btn {
+            background: #eef2ff;
+            color: #1d4ed8;
+            border: 1px solid #c7d2fe;
+            margin-top: 0;
+            padding: 5px 10px;
+            font-size: 0.85rem;
+        }
+
+        .flash {
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            font-size: 0.9rem;
+        }
+
+        .flash.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .flash.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .post-meta {
+            font-size: 0.8rem;
+            color: #64748b;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+
+        .post-img {
+            max-width: 100%;
+            max-height: 320px;
+            border-radius: 8px;
+            margin-top: 8px;
+            display: block;
+        }
+
+        .post-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .filter-bar a {
+            text-decoration: none;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 0.85rem;
+        }
+
+        .filter-bar a.active {
+            background: #2563eb;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Seishun Link 学園掲示板</h1>
+        <form method="get" action="/" style="display:flex; gap:8px; align-items:center; margin:0;">
+            <input type="text" name="user" value="{{ user_name }}" placeholder="ニックネーム / 学籍番号"
+                style="width:170px; margin:0; padding:6px 10px;" />
+            <button type="submit" style="margin:0; padding:6px 12px; background:#0f172a;">表示・ポイント確認</button>
+        </form>
+    </header>
+
+    <div style="max-width:960px; margin:14px auto 0; padding:0 16px;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% if db_error %}
+        <div class="flash error">Azure Storage 接続エラー: {{ db_error }}</div>
+        {% endif %}
+    </div>
+
+    <div class="container">
+        <div>
+            {% if user_info %}
+            <div class="card">
+                <h2>ユーザー情報・ポイント</h2>
+                <p style="margin:4px 0;"><strong>名前:</strong> {{ user_info.RowKey }}</p>
+                <p style="margin:4px 0;"><strong>保有ポイント:</strong> {{ user_info.points }} pt</p>
+                <p style="margin:4px 0;"><strong>投稿数:</strong> {{ user_info.posts_count }} 件</p>
+            </div>
+            {% endif %}
+
+            <div class="card">
+                <h2>新規投稿を作成</h2>
+                <form method="post" action="/posts" enctype="multipart/form-data">
+                    <label>投稿者名</label>
+                    <input type="text" name="author" value="{{ user_name or 'YANGJIAWEI' }}" required />
+
+                    <label>カテゴリー</label>
+                    <select name="category">
+                        {% for cat in categories if cat != 'すべて' %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label>タイトル</label>
+                    <input type="text" name="title" placeholder="例: 文化祭のお知らせ / ノート共有" required />
+
+                    <label>本文</label>
+                    <textarea name="content" placeholder="連絡事項や質問を書いてください..." required></textarea>
+
+                    <label>画像添付（任意・Blob Storage 保存）</label>
+                    <input type="file" name="image" accept=".png,.jpg,.jpeg,.gif,.webp" />
+
+                    <button type="submit">投稿する（+5pt）</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>申訴・通報フォーム</h2>
+                <form method="post" action="/appeals">
+                    <label>通報者</label>
+                    <input type="text" name="reporter" value="{{ user_name or 'YANGJIAWEI' }}" />
+
+                    <label>対象投稿ID（任意）</label>
+                    <input type="text" name="target_id" placeholder="例: 20261127033000_abcd1234" />
+
+                    <label>理由・申訴内容</label>
+                    <textarea name="reason" placeholder="不適切な内容やポイント・投稿に関する申訴を入力..." required></textarea>
+
+                    <button type="submit" class="secondary">送信する</button>
+                </form>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <h2>投稿一覧・検索</h2>
+                <form method="get" action="/" style="display:flex; gap:8px; margin-bottom:12px;">
+                    <input type="hidden" name="category" value="{{ selected_category }}" />
+                    <input type="hidden" name="user" value="{{ user_name }}" />
+                    <input type="text" name="q" value="{{ search_q }}" placeholder="キーワード検索..." style="margin:0;" />
+                    <button type="submit" style="margin:0;">検索</button>
+                </form>
+
+                <div class="filter-bar">
+                    {% for cat in categories %}
+                    <a href="{{ url_for('index', category=cat, q=search_q, user=user_name) }}"
+                        class="{{ 'active' if selected_category == cat else '' }}">{{ cat }}</a>
+                    {% endfor %}
+                </div>
+
+                {% if posts %}
+                {% for post in posts %}
+                <article style="border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-bottom:14px;">
+                    <div class="post-meta">
+                        <span class="badge">{{ post.category }}</span>
+                        <span>投稿者: <strong>{{ post.author }}</strong></span>
+                        <span>ID: <code>{{ post.id }}</code></span>
+                        <span>{{ post.created_at[:19] }}</span>
+                    </div>
+                    <h3 style="margin:4px 0 8px;">{{ post.title }}</h3>
+                    <p style="margin:0; white-space:pre-line;">{{ post.content }}</p>
+                    {% if post.image_url %}
+                    <img src="{{ post.image_url }}" alt="添付画像" class="post-img" />
+                    {% endif %}
+                    <div class="post-footer">
+                        <form method="post" action="/posts/{{ post.id }}/like" style="margin:0;">
+                            <input type="hidden" name="user" value="{{ user_name }}" />
+                            <button type="submit" class="like-btn">👍 いいね ({{ post.likes }})</button>
+                        </form>
+                    </div>
+                </article>
+                {% endfor %}
+                {% else %}
+                <p style="color:#64748b;">該当する投稿はまだありません。左のフォームから最初の投稿を作成してみましょう！</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
